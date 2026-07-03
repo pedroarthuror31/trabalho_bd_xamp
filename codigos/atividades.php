@@ -2,19 +2,46 @@
 include "conexao.php";
 
 if (isset($_POST['cadastrar'])) {
-    $titulo = $_POST['titulo'];
-    $descricao = $_POST['descricao'];
-    $nota = $_POST['nota'];
-    $data_entrega = $_POST['data_entrega'];
-    $id_aluno = $_POST['id_aluno'];
+    $nome_atividade = $_POST['nome_atividade'];
+    $professor_responsavel = $_POST['professor_responsavel'];
+    $valor = $_POST['valor'];
+    $data_prevista = $_POST['data_prevista'];
 
-    $sql = "INSERT INTO atividades (titulo, descricao, nota, data_entrega, id_aluno)
-            VALUES ('$titulo', '$descricao', '$nota', '$data_entrega', '$id_aluno')";
+    $sql_verifica = "SELECT COUNT(*) AS total
+                     FROM atividades
+                     WHERE nome_atividade = '$nome_atividade'";
 
-    $conn->query($sql);
+    $resultado_verifica = $conn->query($sql_verifica);
+    $dados = $resultado_verifica->fetch_assoc();
 
-    header("Location: atividades.php");
-    exit;
+    if ($dados['total'] > 0) {
+        header("Location: atividades.php?erro=duplicada");
+        exit;
+    }
+
+    if (isset($_POST['alunos'])) {
+        $alunos_selecionados = $_POST['alunos'];
+
+        $sql = "INSERT INTO atividades (nome_atividade, professor_responsavel, valor, data_prevista)
+                VALUES ('$nome_atividade', '$professor_responsavel', '$valor', '$data_prevista')";
+
+        $conn->query($sql);
+
+        $id_atividade = $conn->insert_id;
+
+        foreach ($alunos_selecionados as $id_aluno) {
+            $sql = "INSERT INTO aluno_atividade (id_aluno, id_atividade, data_entrega)
+                    VALUES ('$id_aluno', '$id_atividade', NULL)";
+
+            $conn->query($sql);
+        }
+
+        header("Location: atividades.php?sucesso=1");
+        exit;
+    } else {
+        header("Location: atividades.php?erro=aluno");
+        exit;
+    }
 }
 
 if (isset($_GET['excluir'])) {
@@ -32,20 +59,39 @@ $pesquisa = "";
 if (isset($_GET['pesquisa']) && $_GET['pesquisa'] != "") {
     $pesquisa = $_GET['pesquisa'];
 
-    $sql = "SELECT atividades.*, alunos.nome
+    $sql = "SELECT 
+                atividades.id_atividade,
+                atividades.nome_atividade,
+                atividades.professor_responsavel,
+                atividades.valor,
+                atividades.data_prevista,
+                GROUP_CONCAT(alunos.nome SEPARATOR ', ') AS alunos
             FROM atividades
-            INNER JOIN alunos ON atividades.id_aluno = alunos.id_aluno
-            WHERE atividades.titulo LIKE '%$pesquisa%'
-            ORDER BY atividades.titulo";
+            INNER JOIN aluno_atividade 
+                ON atividades.id_atividade = aluno_atividade.id_atividade
+            INNER JOIN alunos 
+                ON aluno_atividade.id_aluno = alunos.id_aluno
+            WHERE atividades.nome_atividade LIKE '%$pesquisa%'
+            GROUP BY atividades.id_atividade
+            ORDER BY atividades.nome_atividade";
 } else {
-    $sql = "SELECT atividades.*, alunos.nome
+    $sql = "SELECT 
+                atividades.id_atividade,
+                atividades.nome_atividade,
+                atividades.professor_responsavel,
+                atividades.valor,
+                atividades.data_prevista,
+                GROUP_CONCAT(alunos.nome SEPARATOR ', ') AS alunos
             FROM atividades
-            INNER JOIN alunos ON atividades.id_aluno = alunos.id_aluno
-            ORDER BY atividades.titulo";
+            INNER JOIN aluno_atividade 
+                ON atividades.id_atividade = aluno_atividade.id_atividade
+            INNER JOIN alunos 
+                ON aluno_atividade.id_aluno = alunos.id_aluno
+            GROUP BY atividades.id_atividade
+            ORDER BY atividades.nome_atividade";
 }
 
 $resultado = $conn->query($sql);
-
 $alunos = $conn->query("SELECT * FROM alunos ORDER BY nome");
 ?>
 
@@ -63,34 +109,54 @@ $alunos = $conn->query("SELECT * FROM alunos ORDER BY nome");
 
 <h1>Sistema de Gerenciamento de Atividades</h1>
 
+<?php if (isset($_GET['erro']) && $_GET['erro'] == 'duplicada') { ?>
+    <div class="mensagem erro">
+        Já existe uma atividade cadastrada com esse nome.
+    </div>
+<?php } ?>
+
+<?php if (isset($_GET['erro']) && $_GET['erro'] == 'aluno') { ?>
+    <div class="mensagem erro">
+        Selecione pelo menos um aluno para cadastrar a atividade.
+    </div>
+<?php } ?>
+
+<?php if (isset($_GET['sucesso'])) { ?>
+    <div class="mensagem sucesso">
+        Atividade cadastrada com sucesso!
+    </div>
+<?php } ?>
+
 <a href="index.php">Voltar</a>
 
 <h2>Cadastrar Atividade</h2>
 
 <form method="POST">
-    <input type="text" name="titulo" placeholder="Título" required>
+    <input type="text" name="nome_atividade" placeholder="Nome da atividade" required>
     <br><br>
 
-    <input type="text" name="descricao" placeholder="Descrição" required>
+    <input type="text" name="professor_responsavel" placeholder="Professor responsável" required>
     <br><br>
 
-    <input type="number" step="0.01" name="nota" placeholder="Nota" required>
+    <input type="number" step="0.01" name="valor" placeholder="Valor" required>
     <br><br>
 
-    <input type="date" name="data_entrega" required>
+    <label>Data prevista:</label>
+    <br>
+    <input type="date" name="data_prevista" required>
     <br><br>
 
-    <select name="id_aluno" required>
-        <option value="">Selecione o aluno</option>
+    <h3>Selecione os alunos</h3>
 
-        <?php while ($aluno = $alunos->fetch_assoc()) { ?>
-            <option value="<?php echo $aluno['id_aluno']; ?>">
-                <?php echo $aluno['nome']; ?>
-            </option>
-        <?php } ?>
-    </select>
+    <?php while ($aluno = $alunos->fetch_assoc()) { ?>
+        <label>
+            <input type="checkbox" name="alunos[]" value="<?php echo $aluno['id_aluno']; ?>">
+            <?php echo $aluno['nome']; ?>
+        </label>
+        <br>
+    <?php } ?>
 
-    <br><br>
+    <br>
 
     <button type="submit" name="cadastrar">Cadastrar</button>
 </form>
@@ -101,7 +167,7 @@ $alunos = $conn->query("SELECT * FROM alunos ORDER BY nome");
     <input
         type="text"
         name="pesquisa"
-        placeholder="Pesquisar por título"
+        placeholder="Pesquisar por nome da atividade"
         value="<?php echo $pesquisa; ?>"
     >
 
@@ -113,11 +179,11 @@ $alunos = $conn->query("SELECT * FROM alunos ORDER BY nome");
 <table>
     <tr>
         <th>ID</th>
-        <th>Título</th>
-        <th>Descrição</th>
-        <th>Nota</th>
-        <th>Data de Entrega</th>
-        <th>Aluno</th>
+        <th>Atividade</th>
+        <th>Professor</th>
+        <th>Valor</th>
+        <th>Data Prevista</th>
+        <th>Alunos</th>
         <th>Ações</th>
     </tr>
 
@@ -126,11 +192,11 @@ $alunos = $conn->query("SELECT * FROM alunos ORDER BY nome");
     <?php while ($atividade = $resultado->fetch_assoc()) { ?>
         <tr>
             <td><?php echo $contador++; ?></td>
-            <td><?php echo $atividade['titulo']; ?></td>
-            <td><?php echo $atividade['descricao']; ?></td>
-            <td><?php echo $atividade['nota']; ?></td>
-            <td><?php echo $atividade['data_entrega']; ?></td>
-            <td><?php echo $atividade['nome']; ?></td>
+            <td><?php echo $atividade['nome_atividade']; ?></td>
+            <td><?php echo $atividade['professor_responsavel']; ?></td>
+            <td><?php echo $atividade['valor']; ?></td>
+            <td><?php echo $atividade['data_prevista']; ?></td>
+            <td><?php echo $atividade['alunos']; ?></td>
             <td>
                 <a href="editar_atividade.php?id=<?php echo $atividade['id_atividade']; ?>">
                     Editar
