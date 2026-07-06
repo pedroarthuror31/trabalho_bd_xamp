@@ -1,20 +1,42 @@
 <?php
 include "conexao.php";
 
-$sql = "SELECT
-            aluno_atividade.id_aluno_atividade,
-            alunos.nome,
-            atividades.nome_atividade,
-            atividades.professor_responsavel,
-            atividades.data_prevista,
-            aluno_atividade.data_entrega,
-            aluno_atividade.nota
-        FROM aluno_atividade
-        INNER JOIN alunos
-            ON aluno_atividade.id_aluno = alunos.id_aluno
-        INNER JOIN atividades
-            ON aluno_atividade.id_atividade = atividades.id_atividade
-        ORDER BY alunos.nome";
+$pesquisa = "";
+
+if (isset($_GET['pesquisa']) && $_GET['pesquisa'] != "") {
+    $pesquisa = $_GET['pesquisa'];
+
+    $sql = "SELECT
+                aluno_atividade.id_aluno_atividade,
+                alunos.nome,
+                atividades.nome_atividade,
+                atividades.professor_responsavel,
+                atividades.data_prevista,
+                aluno_atividade.data_entrega,
+                aluno_atividade.nota
+            FROM aluno_atividade
+            INNER JOIN alunos
+                ON aluno_atividade.id_aluno = alunos.id_aluno
+            INNER JOIN atividades
+                ON aluno_atividade.id_atividade = atividades.id_atividade
+            WHERE alunos.nome LIKE '%$pesquisa%'
+            ORDER BY alunos.nome";
+} else {
+    $sql = "SELECT
+                aluno_atividade.id_aluno_atividade,
+                alunos.nome,
+                atividades.nome_atividade,
+                atividades.professor_responsavel,
+                atividades.data_prevista,
+                aluno_atividade.data_entrega,
+                aluno_atividade.nota
+            FROM aluno_atividade
+            INNER JOIN alunos
+                ON aluno_atividade.id_aluno = alunos.id_aluno
+            INNER JOIN atividades
+                ON aluno_atividade.id_atividade = atividades.id_atividade
+            ORDER BY alunos.nome";
+}
 
 $resultado = $conn->query($sql);
 ?>
@@ -35,6 +57,19 @@ $resultado = $conn->query($sql);
 
 <a href="index.php">Voltar</a>
 
+<h2>Pesquisar Entregas por Aluno</h2>
+
+<form method="GET">
+    <input
+        type="text"
+        name="pesquisa"
+        placeholder="Digite o nome do aluno"
+        value="<?php echo $pesquisa; ?>"
+    >
+
+    <button type="submit">Pesquisar</button>
+</form>
+
 <h2>Tabela Aluno_Atividade</h2>
 
 <table>
@@ -51,45 +86,59 @@ $resultado = $conn->query($sql);
 
     <?php $contador = 1; ?>
 
-    <?php while ($linha = $resultado->fetch_assoc()) { ?>
+    <?php if ($resultado->num_rows > 0) { ?>
+
+        <?php while ($linha = $resultado->fetch_assoc()) { ?>
+            <tr>
+                <td><?php echo $contador++; ?></td>
+                <td><?php echo $linha['nome']; ?></td>
+                <td><?php echo $linha['nome_atividade']; ?></td>
+                <td><?php echo $linha['professor_responsavel']; ?></td>
+                <td><?php echo $linha['data_prevista']; ?></td>
+
+                <td>
+                    <?php
+                    if ($linha['data_entrega'] == NULL) {
+                        echo "Não entregue";
+                    } else {
+                        echo $linha['data_entrega'];
+                    }
+                    ?>
+                </td>
+
+                <td>
+                    <?php
+                    if ($linha['nota'] == NULL) {
+                        echo "Sem nota";
+                    } else {
+                        echo $linha['nota'];
+                    }
+                    ?>
+                </td>
+
+                <td>
+                    <a href="editar_entrega.php?id=<?php echo $linha['id_aluno_atividade']; ?>">
+                        Editar entrega
+                    </a>
+                </td>
+            </tr>
+        <?php } ?>
+
+    <?php } else { ?>
+
         <tr>
-            <td><?php echo $contador++; ?></td>
-            <td><?php echo $linha['nome']; ?></td>
-            <td><?php echo $linha['nome_atividade']; ?></td>
-            <td><?php echo $linha['professor_responsavel']; ?></td>
-            <td><?php echo $linha['data_prevista']; ?></td>
-
-            <td>
-                <?php
-                if ($linha['data_entrega'] == NULL) {
-                    echo "Não entregue";
-                } else {
-                    echo $linha['data_entrega'];
-                }
-                ?>
-            </td>
-
-            <td>
-                <?php
-                if ($linha['nota'] == NULL) {
-                    echo "Sem nota";
-                } else {
-                    echo $linha['nota'];
-                }
-                ?>
-            </td>
-
-            <td>
-                <a href="editar_entrega.php?id=<?php echo $linha['id_aluno_atividade']; ?>">
-                    Editar entrega
-                </a>
+            <td colspan="8">
+                Nenhuma entrega encontrada para essa pesquisa.
             </td>
         </tr>
+
     <?php } ?>
 
 </table>
 
 </div>
 
+</body>
+</html>
 </body>
 </html>
