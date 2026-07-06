@@ -1,13 +1,28 @@
-<?php
+<<?php
 include "conexao.php";
 
-$sql = "SELECT *
-        FROM alunos
-        WHERE id_aluno NOT IN (
-            SELECT id_aluno
-            FROM aluno_atividade
-        )
-        ORDER BY nome";
+$pesquisa = "";
+
+if (isset($_GET['pesquisa']) && $_GET['pesquisa'] != "") {
+    $pesquisa = $_GET['pesquisa'];
+
+    $sql = "SELECT *
+            FROM alunos
+            WHERE nome LIKE '%$pesquisa%'
+            AND id_aluno NOT IN (
+                SELECT id_aluno
+                FROM aluno_atividade
+            )
+            ORDER BY nome";
+} else {
+    $sql = "SELECT *
+            FROM alunos
+            WHERE id_aluno NOT IN (
+                SELECT id_aluno
+                FROM aluno_atividade
+            )
+            ORDER BY nome";
+}
 
 $resultado = $conn->query($sql);
 ?>
@@ -33,6 +48,19 @@ $resultado = $conn->query($sql);
         para listar os alunos que não estão vinculados a nenhuma atividade.
     </p>
 
+    <h2>Pesquisar Aluno</h2>
+
+    <form method="GET">
+        <input
+            type="text"
+            name="pesquisa"
+            placeholder="Digite o nome do aluno"
+            value="<?php echo $pesquisa; ?>"
+        >
+
+        <button type="submit">Pesquisar</button>
+    </form>
+
     <table>
 
         <tr>
@@ -43,37 +71,29 @@ $resultado = $conn->query($sql);
             <th>Data de Nascimento</th>
         </tr>
 
-        <?php
-        $contador = 1;
+        <?php $contador = 1; ?>
 
-        if ($resultado->num_rows > 0) {
-            while ($aluno = $resultado->fetch_assoc()) {
-        ?>
+        <?php if ($resultado->num_rows > 0) { ?>
 
-        <tr>
+            <?php while ($aluno = $resultado->fetch_assoc()) { ?>
 
-            <td><?php echo $contador++; ?></td>
+                <tr>
+                    <td><?php echo $contador++; ?></td>
+                    <td><?php echo $aluno['nome']; ?></td>
+                    <td><?php echo $aluno['email']; ?></td>
+                    <td><?php echo $aluno['curso']; ?></td>
+                    <td><?php echo $aluno['data_nascimento']; ?></td>
+                </tr>
 
-            <td><?php echo $aluno['nome']; ?></td>
+            <?php } ?>
 
-            <td><?php echo $aluno['email']; ?></td>
+        <?php } else { ?>
 
-            <td><?php echo $aluno['curso']; ?></td>
-
-            <td><?php echo $aluno['data_nascimento']; ?></td>
-
-        </tr>
-
-        <?php
-            }
-        } else {
-        ?>
-
-        <tr>
-            <td colspan="5">
-                Todos os alunos estão vinculados a pelo menos uma atividade.
-            </td>
-        </tr>
+            <tr>
+                <td colspan="5">
+                    Nenhum aluno sem atividade foi encontrado.
+                </td>
+            </tr>
 
         <?php } ?>
 
@@ -82,4 +102,5 @@ $resultado = $conn->query($sql);
 </div>
 
 </body>
+</html>
 </html>
