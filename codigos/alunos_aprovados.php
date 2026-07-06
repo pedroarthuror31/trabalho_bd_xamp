@@ -1,17 +1,36 @@
 <?php
 include "conexao.php";
 
-$sql = "SELECT
-            nome,
-            email,
-            curso
-        FROM alunos
-        WHERE id_aluno = ANY (
-            SELECT id_aluno
-            FROM aluno_atividade
-            WHERE nota >= 6
-        )
-        ORDER BY nome";
+$pesquisa = "";
+
+if (isset($_GET['pesquisa']) && $_GET['pesquisa'] != "") {
+    $pesquisa = $_GET['pesquisa'];
+
+    $sql = "SELECT
+                nome,
+                email,
+                curso
+            FROM alunos
+            WHERE nome LIKE '%$pesquisa%'
+            AND id_aluno = ANY (
+                SELECT id_aluno
+                FROM aluno_atividade
+                WHERE nota >= 6
+            )
+            ORDER BY nome";
+} else {
+    $sql = "SELECT
+                nome,
+                email,
+                curso
+            FROM alunos
+            WHERE id_aluno = ANY (
+                SELECT id_aluno
+                FROM aluno_atividade
+                WHERE nota >= 6
+            )
+            ORDER BY nome";
+}
 
 $resultado = $conn->query($sql);
 ?>
@@ -37,8 +56,20 @@ Esta consulta utiliza uma subconsulta com <strong>ANY</strong> para listar os al
 que possuem pelo menos uma nota maior ou igual a <strong>6,0</strong>.
 </p>
 
-<table>
+<h2>Pesquisar Aluno</h2>
 
+<form method="GET">
+    <input
+        type="text"
+        name="pesquisa"
+        placeholder="Digite o nome do aluno"
+        value="<?php echo $pesquisa; ?>"
+    >
+
+    <button type="submit">Pesquisar</button>
+</form>
+
+<table>
 <tr>
     <th>ID</th>
     <th>Nome</th>
@@ -46,37 +77,24 @@ que possuem pelo menos uma nota maior ou igual a <strong>6,0</strong>.
     <th>Curso</th>
 </tr>
 
-<?php
-$contador = 1;
+<?php $contador = 1; ?>
 
-if ($resultado->num_rows > 0) {
+<?php if ($resultado->num_rows > 0) { ?>
 
-    while ($aluno = $resultado->fetch_assoc()) {
-?>
+    <?php while ($aluno = $resultado->fetch_assoc()) { ?>
+        <tr>
+            <td><?php echo $contador++; ?></td>
+            <td><?php echo $aluno['nome']; ?></td>
+            <td><?php echo $aluno['email']; ?></td>
+            <td><?php echo $aluno['curso']; ?></td>
+        </tr>
+    <?php } ?>
 
-<tr>
+<?php } else { ?>
 
-<td><?php echo $contador++; ?></td>
-
-<td><?php echo $aluno['nome']; ?></td>
-
-<td><?php echo $aluno['email']; ?></td>
-
-<td><?php echo $aluno['curso']; ?></td>
-
-</tr>
-
-<?php
-    }
-
-} else {
-?>
-
-<tr>
-    <td colspan="4">
-        Nenhum aluno possui nota maior ou igual a 6.
-    </td>
-</tr>
+    <tr>
+        <td colspan="4">Nenhum aluno aprovado encontrado.</td>
+    </tr>
 
 <?php } ?>
 
