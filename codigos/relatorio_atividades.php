@@ -1,17 +1,36 @@
 <?php
 include "conexao.php";
 
-$sql = "SELECT
-            atividades.nome_atividade,
-            atividades.professor_responsavel,
-            COUNT(aluno_atividade.id_aluno) AS quantidade_alunos,
-            AVG(aluno_atividade.nota) AS media_notas
-        FROM atividades
-        INNER JOIN aluno_atividade
-            ON atividades.id_atividade = aluno_atividade.id_atividade
-        WHERE atividades.valor >= 6
-        GROUP BY atividades.nome_atividade, atividades.professor_responsavel
-        ORDER BY atividades.nome_atividade";
+$pesquisa = "";
+
+if (isset($_GET['pesquisa']) && $_GET['pesquisa'] != "") {
+    $pesquisa = $_GET['pesquisa'];
+
+    $sql = "SELECT
+                atividades.nome_atividade,
+                atividades.professor_responsavel,
+                COUNT(aluno_atividade.id_aluno) AS quantidade_alunos,
+                AVG(aluno_atividade.nota) AS media_notas
+            FROM atividades
+            INNER JOIN aluno_atividade
+                ON atividades.id_atividade = aluno_atividade.id_atividade
+            WHERE atividades.valor >= 6
+            AND atividades.nome_atividade LIKE '%$pesquisa%'
+            GROUP BY atividades.nome_atividade, atividades.professor_responsavel
+            ORDER BY atividades.nome_atividade";
+} else {
+    $sql = "SELECT
+                atividades.nome_atividade,
+                atividades.professor_responsavel,
+                COUNT(aluno_atividade.id_aluno) AS quantidade_alunos,
+                AVG(aluno_atividade.nota) AS media_notas
+            FROM atividades
+            INNER JOIN aluno_atividade
+                ON atividades.id_atividade = aluno_atividade.id_atividade
+            WHERE atividades.valor >= 6
+            GROUP BY atividades.nome_atividade, atividades.professor_responsavel
+            ORDER BY atividades.nome_atividade";
+}
 
 $resultado = $conn->query($sql);
 ?>
@@ -37,6 +56,19 @@ Esta consulta utiliza <strong>INNER JOIN</strong>, <strong>WHERE</strong>,
 <strong>COUNT</strong>, <strong>AVG</strong> e <strong>GROUP BY</strong>.
 </p>
 
+<h2>Pesquisar Atividade</h2>
+
+<form method="GET">
+    <input
+        type="text"
+        name="pesquisa"
+        placeholder="Digite o nome da atividade"
+        value="<?php echo $pesquisa; ?>"
+    >
+
+    <button type="submit">Pesquisar</button>
+</form>
+
 <table>
     <tr>
         <th>ID</th>
@@ -48,26 +80,38 @@ Esta consulta utiliza <strong>INNER JOIN</strong>, <strong>WHERE</strong>,
 
     <?php $contador = 1; ?>
 
-    <?php while ($linha = $resultado->fetch_assoc()) { ?>
+    <?php if ($resultado->num_rows > 0) { ?>
+
+        <?php while ($linha = $resultado->fetch_assoc()) { ?>
+            <tr>
+                <td><?php echo $contador++; ?></td>
+                <td><?php echo $linha['nome_atividade']; ?></td>
+                <td><?php echo $linha['professor_responsavel']; ?></td>
+                <td><?php echo $linha['quantidade_alunos']; ?></td>
+                <td>
+                    <?php
+                    if ($linha['media_notas'] == NULL) {
+                        echo "Sem notas";
+                    } else {
+                        echo number_format($linha['media_notas'], 2, ',', '.');
+                    }
+                    ?>
+                </td>
+            </tr>
+        <?php } ?>
+
+    <?php } else { ?>
+
         <tr>
-            <td><?php echo $contador++; ?></td>
-            <td><?php echo $linha['nome_atividade']; ?></td>
-            <td><?php echo $linha['professor_responsavel']; ?></td>
-            <td><?php echo $linha['quantidade_alunos']; ?></td>
-            <td>
-                <?php
-                if ($linha['media_notas'] == NULL) {
-                    echo "Sem notas";
-                } else {
-                    echo number_format($linha['media_notas'], 2, ',', '.');
-                }
-                ?>
-            </td>
+            <td colspan="5">Nenhuma atividade encontrada.</td>
         </tr>
+
     <?php } ?>
 </table>
 
 </div>
 
+</body>
+</html>
 </body>
 </html>
