@@ -44,19 +44,51 @@ if (isset($_POST['atualizar'])) {
 <p><strong>ID interno do aluno:</strong> <?php echo $aluno['id_aluno']; ?></p>
 
 <form method="POST">
-    <input type="text" name="nome" value="<?php echo $aluno['nome']; ?>" required>
+
+    <input
+        type="text"
+        name="nome"
+        value="<?php echo $aluno['nome']; ?>"
+        required
+    >
     <br><br>
 
-    <input type="email" name="email" value="<?php echo $aluno['email']; ?>" required>
+    <input
+        type="email"
+        name="email"
+        value="<?php echo $aluno['email']; ?>"
+        required
+    >
     <br><br>
 
-    <input type="text" name="curso" value="<?php echo $aluno['curso']; ?>" required>
+    <select name="curso" required>
+
+        <option value="Engenharia de Computação"
+            <?php if ($aluno['curso'] == "Engenharia de Computação") echo "selected"; ?>>
+            Engenharia de Computação
+        </option>
+
+        <option value="Engenharia de Produção"
+            <?php if ($aluno['curso'] == "Engenharia de Produção") echo "selected"; ?>>
+            Engenharia de Produção
+        </option>
+
+    </select>
+
     <br><br>
 
-    <input type="date" name="data_nascimento" value="<?php echo $aluno['data_nascimento']; ?>" required>
+    <input
+        type="date"
+        name="data_nascimento"
+        value="<?php echo $aluno['data_nascimento']; ?>"
+        required
+    >
     <br><br>
 
-    <button type="submit" name="atualizar">Atualizar</button>
+    <button type="submit" name="atualizar">
+        Atualizar
+    </button>
+
 </form>
 
 <br>
